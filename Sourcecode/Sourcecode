@@ -1,0 +1,118 @@
+import os
+import cv2
+import zipfile
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, classification_report
+
+# Extract Dataset
+with zipfile.ZipFile('/content/DATASET Cat and Dog.zip', 'r') as zip_ref:
+    zip_ref.extractall('/content/')
+
+# Load Images and Create Labels
+data = []
+labels = []
+
+dataset_path = "/content/DATASET Cat and Dog"
+categories = ["Cat", "Dog"]
+
+for category in categories:
+
+    folder = os.path.join(dataset_path, category)
+    label = categories.index(category)
+
+    for image in os.listdir(folder):
+
+        try:
+            img_path = os.path.join(folder, image)
+
+            img = cv2.imread(img_path)
+            img = cv2.resize(img, (32, 32))
+
+            data.append(img.flatten())
+            labels.append(label)
+
+        except:
+            pass
+
+print("Total Images:", len(data))
+
+# Convert into NumPy Arrays
+X = np.array(data)
+y = np.array(labels)
+
+print("X Shape:", X.shape)
+print("Y Shape:", y.shape)
+
+# Split Dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# Train SVM Model
+svm = SVC(kernel='linear')
+svm.fit(X_train, y_train)
+
+# Predict on Test Data
+y_pred = svm.predict(X_test)
+
+# Accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# Classification Report
+print(classification_report(y_test, y_pred))
+
+# Test Single Image
+img_path = "/content/DATASET Cat and Dog/Cat/c21.jpg"
+
+img = cv2.imread(img_path)
+
+img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+img_resize = cv2.resize(img, (32, 32))
+img_flat = img_resize.flatten().reshape(1, -1)
+
+prediction = svm.predict(img_flat)
+
+label = "Cat" if prediction[0] == 0 else "Dog"
+
+plt.imshow(img_rgb)
+plt.title(f"Prediction: {label}")
+plt.axis("off")
+plt.show()
+
+# Test Multiple Images
+image_paths = [
+    "/content/DATASET Cat and Dog/Cat/c5.jpg",
+    "/content/DATASET Cat and Dog/Dog/d20.jpg"
+]
+
+for img_path in image_paths:
+
+    img = cv2.imread(img_path)
+
+    if img is None:
+        continue
+
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    img_resize = cv2.resize(img, (32, 32))
+    img_flat = img_resize.flatten().reshape(1, -1)
+
+    prediction = svm.predict(img_flat)
+
+    label = "Cat" if prediction[0] == 0 else "Dog"
+
+    plt.imshow(img_rgb)
+    plt.title(f"Prediction: {label}")
+    plt.axis("off")
+    plt.show()
+
+    print(f"{os.path.basename(img_path)} --> {label}")
